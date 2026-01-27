@@ -40,7 +40,7 @@ Servo myServo;
 // Encoder setup
 #define EncoderOutputA 4          // Encoder output pin A
 #define EncoderOutputB 5          // Encoder output pin B
-#define steering_angle_center 107 // REPLACE with team center angle for servor steering
+#define steering_angle_center 107  // REPLACE with team center angle for servor steering
 int a_state;
 int encoder_a_last_state; 
 int encoder_count;
@@ -158,8 +158,8 @@ void stop()
 // Drive robot forward a desired speed
 void forward(int speed)
 {
-  digitalWrite(RightMotorDirPin1, HIGH);
-  digitalWrite(RightMotorDirPin2,LOW);
+  digitalWrite(RightMotorDirPin1, LOW);
+  digitalWrite(RightMotorDirPin2,HIGH);
   digitalWrite(LeftMotorDirPin1,HIGH);
   digitalWrite(LeftMotorDirPin2,LOW);
   analogWrite(LeftSpeedPin, speed * 0.75);
@@ -320,4 +320,3 @@ void printWifiStatus() {
   Serial.print(rssi);
   Serial.println(" dBm");
 }
-
