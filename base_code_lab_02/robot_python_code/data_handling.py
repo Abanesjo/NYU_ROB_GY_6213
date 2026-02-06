@@ -166,7 +166,7 @@ if False:
     plot_many_trial_predictions(directory)
 
 # A list of files to open, process, and plot - for comparing predicted with actual distances
-if False:
+if True:
     directory = ('./data_straight/')    
     process_files_and_plot(files_and_data, directory)
 

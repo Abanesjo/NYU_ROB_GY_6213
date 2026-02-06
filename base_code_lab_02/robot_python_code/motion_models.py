@@ -1,9 +1,11 @@
 # External Libraries
+from json import encoder
 import math
 import random
-
 # Motion Model constants
 
+TICKS_PER_METER = 719.532
+METERS_PER_TICK = -1.0 / TICKS_PER_METER
 
 # A function for obtaining variance in distance travelled as a function of distance travelled
 def variance_distance_travelled_s(distance):
@@ -15,8 +17,8 @@ def variance_distance_travelled_s(distance):
 # Function to calculate distance from encoder counts
 def distance_travelled_s(encoder_counts):
     # Add student code here
-    s = 0
-
+    s = METERS_PER_TICK * float(encoder_counts)
+    
     return s
 
 # A function for obtaining variance in distance travelled as a function of distance travelled
@@ -43,7 +45,21 @@ class MyMotionModel:
     # This is the key step of your motion model, which implements x_t = f(x_{t-1}, u_t)
     def step_update(self, encoder_counts, steering_angle_command, delta_t):
         # Add student code here
-        
+        old_state = self.state
+        Delta_s = distance_travelled_s(encoder_counts - self.last_encoder_count)
+        omega = rotational_velocity_w(steering_angle_command)
+        theta = old_state[2]
+        new_state = old_state
+
+        #x
+        new_state[0] += Delta_s * math.cos(theta)
+        #y
+        new_state[1] += Delta_s  * math.sin(theta)
+        #theta
+        new_state[2] += omega * delta_t
+
+        self.last_encoder_count = encoder_counts
+
         return self.state
     
     # This is a great tool to take in data from a trial and iterate over the data to create 
