@@ -4,8 +4,9 @@ import math
 import random
 # Motion Model constants
 
-TICKS_PER_METER = 719.532
-METERS_PER_TICK = -1.0 / TICKS_PER_METER
+TICKS_PER_METER = 3402.09
+METERS_PER_TICK = 1.0 / TICKS_PER_METER
+STEERING_TO_OMEGA_DEG_PER_S = 0.476047
 
 # A function for obtaining variance in distance travelled as a function of distance travelled
 def variance_distance_travelled_s(distance):
@@ -29,8 +30,9 @@ def variance_rotational_velocity_w(distance):
     return var_w
 
 def rotational_velocity_w(steering_angle_command):
-    # Add student code here
-    w = 0
+    # Calibrated from steer_to_yaw.py fit: omega_deg_per_s = a * steering_command
+    omega_deg_per_s = STEERING_TO_OMEGA_DEG_PER_S * float(steering_angle_command)
+    w = math.radians(omega_deg_per_s)
     
     return w
 

@@ -1,5 +1,6 @@
 # External Libraries
 import matplotlib.pyplot as plt
+from matplotlib.patches import Ellipse
 from pathlib import Path
 import math
 import numpy as np
@@ -125,44 +126,104 @@ def process_files_and_plot(files_and_data, directory):
 
 
 # Sample and plot some simulated trials
-def sample_model(num_samples):
+def add_uncertainty_ellipse(ax, x, y, covariance_xy, n_sigma = 2.0, edge_color = 'r'):
+    eigenvalues, eigenvectors = np.linalg.eigh(covariance_xy)
+    eigenvalues = np.maximum(eigenvalues, 0.0)
+    major_axis = 2.0 * n_sigma * math.sqrt(eigenvalues[1])
+    minor_axis = 2.0 * n_sigma * math.sqrt(eigenvalues[0])
+    major_vector = eigenvectors[:,1]
+    angle = math.degrees(math.atan2(major_vector[1], major_vector[0]))
+
+    if major_axis <= 0.0 or minor_axis <= 0.0:
+        return
+
+    ellipse = Ellipse(
+        (x, y),
+        width = major_axis,
+        height = minor_axis,
+        angle = angle,
+        fill = False,
+        edgecolor = edge_color,
+        linewidth = 1.2,
+        alpha = 0.8
+    )
+    ax.add_patch(ellipse)
+
+
+def sample_model(num_samples, ellipse_spacing = 10):
     traj_duration = 10
+    fig, ax = plt.subplots()
+    reference_x = []
+    reference_y = []
+    reference_covariance = []
+
     for i in range(num_samples):
         model = motion_models.MyMotionModel([0,0,0], 0)
-        _, traj_x, traj_y, traj_theta = model.generate_simulated_traj(traj_duration)
-        plt.plot(traj_x, traj_y, 'k.')
+        _, traj_x, traj_y, _, covariance_xy_list = model.generate_simulated_traj(traj_duration)
+        ax.plot(traj_x, traj_y, color = '0.6', linewidth = 0.7, alpha = 0.2)
 
-    plt.title('Sampling the model')
-    plt.xlabel('X (m)')
-    plt.ylabel('Y (m)')
+        if i == 0:
+            reference_x = traj_x
+            reference_y = traj_y
+            reference_covariance = covariance_xy_list
+
+    if len(reference_x) > 0:
+        spacing = max(1, int(ellipse_spacing))
+        ax.plot(reference_x, reference_y, 'k-', linewidth = 2.0, label = 'Sampled path')
+        for index in range(0, len(reference_x), spacing):
+            add_uncertainty_ellipse(ax, reference_x[index], reference_y[index], reference_covariance[index], 2.0, 'r')
+        ax.plot(reference_x[0], reference_y[0], 'go', label = 'Start')
+        ax.plot(reference_x[-1], reference_y[-1], 'bo', label = 'End')
+        ax.plot([], [], 'r-', label = '2\u03c3 uncertainty')
+
+    ax.set_title('Sampling the model')
+    ax.set_xlabel('X (m)')
+    ax.set_ylabel('Y (m)')
+    ax.grid(True)
+    ax.axis('equal')
+    ax.legend()
     plt.show()
 
 
 ######### MAIN ########
 
 # Some sample data to test with
+# files_and_data = [
+#     ['robot_data_60_0_28_01_26_13_41_44.pkl', 67/100], # filename, measured distance in meters
+#     ['robot_data_60_0_28_01_26_13_43_41.pkl', 68/100],
+#     ['robot_data_60_0_28_01_26_13_37_15.pkl', 113/100],
+#     ['robot_data_60_0_28_01_26_13_35_18.pkl', 107/100],
+#     ['robot_data_60_0_28_01_26_13_41_10.pkl', 65/100],
+#     ['robot_data_60_0_28_01_26_13_42_55.pkl', 70/100],
+#     ['robot_data_60_0_28_01_26_13_39_36.pkl', 138/100],
+#     ['robot_data_60_0_28_01_26_13_42_19.pkl', 69/100],
+#     ['robot_data_60_0_28_01_26_13_36_10.pkl', 109/100],
+#     ['robot_data_60_0_28_01_26_13_33_20.pkl', 100/100],
+#     ['robot_data_60_0_28_01_26_13_34_28.pkl', 103/100],
+#     ]
 files_and_data = [
-    ['robot_data_60_0_28_01_26_13_41_44.pkl', 67/100], # filename, measured distance in meters
-    ['robot_data_60_0_28_01_26_13_43_41.pkl', 68/100],
-    ['robot_data_60_0_28_01_26_13_37_15.pkl', 113/100],
-    ['robot_data_60_0_28_01_26_13_35_18.pkl', 107/100],
-    ['robot_data_60_0_28_01_26_13_41_10.pkl', 65/100],
-    ['robot_data_60_0_28_01_26_13_42_55.pkl', 70/100],
-    ['robot_data_60_0_28_01_26_13_39_36.pkl', 138/100],
-    ['robot_data_60_0_28_01_26_13_42_19.pkl', 69/100],
-    ['robot_data_60_0_28_01_26_13_36_10.pkl', 109/100],
-    ['robot_data_60_0_28_01_26_13_33_20.pkl', 100/100],
-    ['robot_data_60_0_28_01_26_13_34_28.pkl', 103/100],
+    ['robot_data_50_0_06_02_26_16_00_04.pkl', 59/100], #5
+    ['robot_data_50_0_06_02_26_16_03_13.pkl', 73.5/100], #6
+    ['robot_data_50_0_06_02_26_16_04_33.pkl', 79/100], #6.5
+    ['robot_data_50_0_06_02_26_16_05_03.pkl', 77/100], #7
+    ['robot_data_50_0_06_02_26_16_05_47.pkl', 43.5/100], #4
+    ['robot_data_50_0_06_02_26_16_07_32.pkl', 35.5/100], #3.5
+    ['robot_data_50_0_06_02_26_16_08_18.pkl', 32/100], #3
+    ['robot_data_50_0_06_02_26_16_09_07.pkl', 23/100], #2.5
+    ['robot_data_50_0_06_02_26_16_09_40.pkl', 17.5/100], #2
+    ['robot_data_50_0_06_02_26_16_10_26.pkl', 89/100], #7.5
+    # ['robot_data_50_0_06_02_26_16_10_58.pkl', 95/100], #8
     ]
 
 # Plot the motion model predictions for a single trial
 if False:
-    filename = './data_straight/robot_data_60_0_28_01_26_13_36_10.pkl'
+    # filename = './data_straight/robot_data_60_0_28_01_26_13_36_10.pkl'
+    filename = './data_curved/robot_data_50_20_06_02_26_16_16_28.pkl'
     run_my_model_on_trial(filename)
 
 # Plot the motion model predictions for each trial in a folder
 if False:
-    directory = ('./data_straight/')
+    directory = ('./data_curved/')
     plot_many_trial_predictions(directory)
 
 # A list of files to open, process, and plot - for comparing predicted with actual distances
@@ -172,4 +233,4 @@ if True:
 
 # Try to sample with the motion model
 if False:
-    sample_model(200)
+    sample_model(200, ellipse_spacing = 10)

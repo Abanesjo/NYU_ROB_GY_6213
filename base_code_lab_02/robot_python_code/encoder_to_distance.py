@@ -6,19 +6,19 @@ from pathlib import Path
 from typing import Any
 
 # (filename, measured distance in meters)
-files_and_data: list[tuple[str, float]] = [
-    ("robot_data_60_0_28_01_26_13_41_44.pkl", 67 / 100),
-    ("robot_data_60_0_28_01_26_13_43_41.pkl", 68 / 100),
-    ("robot_data_60_0_28_01_26_13_37_15.pkl", 113 / 100),
-    ("robot_data_60_0_28_01_26_13_35_18.pkl", 107 / 100),
-    ("robot_data_60_0_28_01_26_13_41_10.pkl", 65 / 100),
-    ("robot_data_60_0_28_01_26_13_42_55.pkl", 70 / 100),
-    ("robot_data_60_0_28_01_26_13_39_36.pkl", 138 / 100),
-    ("robot_data_60_0_28_01_26_13_42_19.pkl", 69 / 100),
-    ("robot_data_60_0_28_01_26_13_36_10.pkl", 109 / 100),
-    ("robot_data_60_0_28_01_26_13_33_20.pkl", 100 / 100),
-    ("robot_data_60_0_28_01_26_13_34_28.pkl", 103 / 100),
-]
+files_and_data = [
+    ['robot_data_50_0_06_02_26_16_00_04.pkl', 59/100], #5
+    ['robot_data_50_0_06_02_26_16_03_13.pkl', 73.5/100], #6
+    ['robot_data_50_0_06_02_26_16_04_33.pkl', 79/100], #6.5
+    ['robot_data_50_0_06_02_26_16_05_03.pkl', 77/100], #7
+    ['robot_data_50_0_06_02_26_16_05_47.pkl', 43.5/100], #4
+    ['robot_data_50_0_06_02_26_16_07_32.pkl', 35.5/100], #3.5
+    ['robot_data_50_0_06_02_26_16_08_18.pkl', 32/100], #3
+    ['robot_data_50_0_06_02_26_16_09_07.pkl', 23/100], #2.5
+    ['robot_data_50_0_06_02_26_16_09_40.pkl', 17.5/100], #2
+    ['robot_data_50_0_06_02_26_16_10_26.pkl', 89/100], #7.5
+    # ['robot_data_50_0_06_02_26_16_10_58.pkl', 95/100], #8
+    ]
 
 
 @dataclass
@@ -113,10 +113,6 @@ def fit_quadratic(x: list[float], y: list[float]) -> tuple[float, float, float]:
     sy1 = sum(x[i] * y[i] for i in range(len(x)))
     sy2 = sum((x[i] * x[i]) * y[i] for i in range(len(x)))
 
-    # Normal equations:
-    # [sx4 sx3 sx2] [a] = [sy2]
-    # [sx3 sx2 sx1] [b]   [sy1]
-    # [sx2 sx1 sx0] [c]   [sy0]
     A = [
         [sx4, sx3, sx2],
         [sx3, sx2, sx1],
@@ -124,7 +120,6 @@ def fit_quadratic(x: list[float], y: list[float]) -> tuple[float, float, float]:
     ]
     b = [sy2, sy1, sy0]
 
-    # Solve 3x3 system with Gaussian elimination (with partial pivoting).
     for col in range(3):
         pivot_row = max(range(col, 3), key=lambda r: abs(A[r][col]))
         if A[pivot_row][col] == 0:
@@ -151,7 +146,7 @@ def fit_quadratic(x: list[float], y: list[float]) -> tuple[float, float, float]:
 
 
 def main() -> None:
-    data_dir = Path(__file__).resolve().parent / "data_straight_example"
+    data_dir = Path(__file__).resolve().parent / "data_straight"
 
     measured_distances: list[float] = []
     encoder_deltas: list[int] = []

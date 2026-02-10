@@ -96,7 +96,20 @@ def plot_steering_vs_angular_velocity(steering_control_list: np.ndarray, angular
     plt.show()
 
 
-def main(show_plot: bool = True) -> None:
+def plot_variance_vs_steering(steering_control_list: np.ndarray, angular_velocity_list: np.ndarray, slope_a: float) -> None:
+    predicted_angular_velocity = slope_a * steering_control_list
+    variance_list = np.square(angular_velocity_list - predicted_angular_velocity)
+
+    plt.figure()
+    plt.plot(steering_control_list, variance_list, "ko")
+    plt.xlabel("Steering control")
+    plt.ylabel(r"Variance $(\omega - \hat{\omega})^2$ ((deg/s)$^2$)")
+    plt.title("Variance vs Steering Control")
+    plt.grid(True)
+    plt.show()
+
+
+def main(show_plot: bool = True, show_variance_plot: bool = True) -> None:
     trial_results = [build_trial_result(DATA_DIRECTORY, filename, yaw_change) for filename, yaw_change in files_and_data]
 
     steering_control_list = np.array([trial.steering_control for trial in trial_results], dtype=float)
@@ -115,7 +128,9 @@ def main(show_plot: bool = True) -> None:
 
     if show_plot:
         plot_steering_vs_angular_velocity(steering_control_list, angular_velocity_list, slope_a)
+    if show_variance_plot:
+        plot_variance_vs_steering(steering_control_list, angular_velocity_list, slope_a)
 
 
 if __name__ == "__main__":
-    main(show_plot=True)
+    main(show_plot=True, show_variance_plot=True)
