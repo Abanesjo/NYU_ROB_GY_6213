@@ -18,9 +18,9 @@ num_robot_control_signals = 2 # speed, steering
 
 # Logging parameters
 max_num_lines_before_write = 1
-filename_start = './data_steer/robot_data'
+filename_start = './data_steer_2_10/robot_data_'
 data_name_list = ['time', 'control_signal', 'robot_sensor_signal', 'camera_sensor_signal']
 
 # Experiment trial parameters
-trial_time = 5000 # milliseconds
+trial_time = 4000 # milliseconds
 extra_trial_log_time = 2000 # milliseconds

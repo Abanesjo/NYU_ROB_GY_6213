@@ -78,6 +78,7 @@ class DataLogger:
         if not logging_switch_on:
             if self.currently_logging:
                 self.currently_logging = False
+            return
         else:
             if not self.currently_logging:
                 self.currently_logging = True
