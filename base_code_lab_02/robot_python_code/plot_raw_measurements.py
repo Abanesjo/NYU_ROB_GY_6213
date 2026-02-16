@@ -7,7 +7,7 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 
-PICKLE_FILE_PATH = Path(__file__).resolve().parent / "data_curved" / "robot_data_50_10_06_02_26_16_18_04.pkl"
+PICKLE_FILE_PATH = Path(__file__).resolve().parent / "data_validation" / "curvy.pkl"
 USE_RELATIVE_TIME = True
 SHOW_PLOTS = True
 

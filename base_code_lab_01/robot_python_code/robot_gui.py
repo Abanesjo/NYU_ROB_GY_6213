@@ -14,7 +14,6 @@ import robot_python_code
 import parameters
 
 # Global variables
-logging = False
 stream_video = False
 
 
@@ -42,6 +41,7 @@ def main():
 
     # Robot variables
     robot = robot_python_code.Robot()
+    recording = {'active': False}
 
     # Lidar data
     max_lidar_range = 12
@@ -147,6 +147,20 @@ def main():
             plt.xlim(-2,2)
             plt.ylim(-2,2)
 
+    # Toggle recording state: first press starts, second press saves.
+    def toggle_recording():
+        if not recording['active']:
+            cmd_speed, cmd_steering_angle = update_commands()
+            robot.start_logging([cmd_speed, cmd_steering_angle])
+            recording['active'] = True
+            record_button.set_text('Stop and Save Recording')
+            record_status_label.set_text('Recording: ON')
+        else:
+            recording['active'] = False
+            saved_filename = robot.save_log()
+            record_button.set_text('Start Recording')
+            record_status_label.set_text(f"Saved: {saved_filename}")
+
 
     # Create the gui title bar
     with ui.card().classes('w-full  items-center'):
@@ -166,7 +180,8 @@ def main():
             with ui.card().classes('items-center h-60'):
                 ui.label('Encoder:').style('text-align: center;')
                 encoder_count_label = ui.label('0')
-                logging_switch = ui.switch('Data Logging ')
+                record_button = ui.button('Start Recording', on_click=toggle_recording)
+                record_status_label = ui.label('Recording: OFF')
                 udp_switch = ui.switch('Robot Connect')
                 
     # Create the robot manual control slider and switch for speed
@@ -198,7 +213,7 @@ def main():
     async def control_loop():
         update_connection_to_robot()
         cmd_speed, cmd_steering_angle = update_commands()
-        robot.control_loop(cmd_speed, cmd_steering_angle, logging_switch.value)
+        robot.control_loop(cmd_speed, cmd_steering_angle, recording['active'])
         encoder_count_label.set_text(robot.robot_sensor_signal.encoder_counts)
         update_lidar_data()
         show_lidar_plot()
@@ -208,4 +223,3 @@ def main():
 
 # Run the gui
 ui.run(native=True)
-

@@ -1,0 +1,19 @@
+\begin{algorithm}[h]
+\caption{Steering Command to Angular Velocity Calibration}
+\label{alg:steer_to_yaw}
+\begin{algorithmic}[1]
+\Require Trial logs $\{(t_i, \alpha_i)\}_{i=0}^{N-1}$ and measured yaw change $\Delta\theta$ (deg)
+\For{each trial}
+    \State $\alpha \gets$ first nonzero steering command in $\{\alpha_i\}$
+    \State $I \gets \{\, i \mid \alpha_i = \alpha \,\}$
+    \If{$|I| \ge 2$}
+        \State $\Delta t \gets t_{I_{\text{last}}} - t_{I_{\text{first}}}$
+    \Else
+        \State $\Delta t \gets t_{N-1} - t_0$
+    \EndIf
+    \State $\omega_{\deg/s} \gets \Delta\theta / \Delta t$
+    \State Append $(\alpha,\omega_{\deg/s})$ to dataset
+\EndFor
+\State Fit $\hat{\omega}(\alpha)=a\,\tanh(b\alpha)$ using all collected pairs
+\end{algorithmic}
+\end{algorithm}

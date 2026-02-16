@@ -2,11 +2,13 @@
 import serial
 import time
 import pickle
+import os
 import cv2
 import cv2.aruco as aruco
 import numpy as np
 import matplotlib.pyplot as plt
 import socket
+from time import strftime
 
 # Local libraries
 import parameters
@@ -53,15 +55,40 @@ class UDPCommunication:
 class DataLogger:
 
     # Constructor
-    def __init__(self, filename, data_name_list):
-        self.filename = filename
+    def __init__(self, filename_start, data_name_list):
+        if os.path.isabs(filename_start):
+            self.filename_start = filename_start
+        else:
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+            self.filename_start = os.path.normpath(os.path.join(base_dir, filename_start))
+        self.filename = self.filename_start
         self.line_count = 0
-        self.file = open(filename, 'w')
-        self.dictionary = {}
         self.data_name_list = data_name_list
-        for name in data_name_list:
-            self.dictionary[name] = []
-        
+        self.dictionary = self._empty_dictionary()
+
+    # Create a fresh dictionary for a new recording.
+    def _empty_dictionary(self):
+        dictionary = {}
+        for name in self.data_name_list:
+            dictionary[name] = []
+        return dictionary
+
+    # Reset buffered logs to start a new recording.
+    def reset(self, control_signal):
+        filename_dir = os.path.dirname(self.filename_start)
+        if filename_dir != "":
+            os.makedirs(filename_dir, exist_ok=True)
+        self.filename = (
+            self.filename_start
+            + "_"
+            + str(control_signal[0])
+            + "_"
+            + str(control_signal[1])
+            + strftime("_%d_%m_%y_%H_%M_%S.pkl")
+        )
+        self.line_count = 0
+        self.dictionary = self._empty_dictionary()
+
     # Log one time step of data
     def log(self, time, control_signal, robot_sensor_signal, camera_sensor_signal):
         
@@ -71,10 +98,12 @@ class DataLogger:
         self.dictionary['camera_sensor_signal'].append(camera_sensor_signal)
 
         self.line_count += 1
-        if self.line_count > parameters.max_num_lines_before_write:
-            self.line_count = 0
-            with open(self.filename, 'wb') as file_handle:
-                pickle.dump(self.dictionary, file_handle)
+
+    # Write the buffered recording to file.
+    def save(self):
+        with open(self.filename, 'wb') as file_handle:
+            pickle.dump(self.dictionary, file_handle)
+        return self.filename
             
             
 # Utility for loading saved data
@@ -263,7 +292,7 @@ class Robot:
         self.msg_sender = None
         self.msg_receiver = None
         self.camera_sensor = CameraSensor(parameters.camera_id)
-        self.data_logger = DataLogger(parameters.filename, parameters.data_name_list)
+        self.data_logger = DataLogger(parameters.filename_start, parameters.data_name_list)
         self.robot_sensor_signal = RobotSensorSignal([0, 0, 0])
         self.camera_sensor_signal = [0,0,0,0,0,0]
         print("New robot!")
@@ -279,6 +308,16 @@ class Robot:
         self.msg_sender = None
         self.msg_receiver = None
         print("Eliminate UDP !!!")
+
+    # Start a new recording buffer.
+    def start_logging(self, control_signal = None):
+        if control_signal is None:
+            control_signal = [0, 0]
+        self.data_logger.reset(control_signal)
+
+    # Save the current recording buffer.
+    def save_log(self):
+        return self.data_logger.save()
 
     # One iteration of the control loop to be called repeatedly
     def control_loop(self, cmd_speed = 0, cmd_steering_angle = 0, logging = False):
@@ -296,4 +335,3 @@ class Robot:
         # Log the data
         if logging:
             self.data_logger.log(time.perf_counter(), control_signal, self.robot_sensor_signal, self.camera_sensor_signal)
-

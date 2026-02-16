@@ -18,5 +18,5 @@ num_robot_control_signals = 2 # speed, steering
 
 # Logging parameters
 max_num_lines_before_write = 50
-filename = 'robot_data.pkl'
+filename_start = './data/robot_data'
 data_name_list = ['time', 'control_signal', 'robot_sensor_signal', 'camera_sensor_signal']

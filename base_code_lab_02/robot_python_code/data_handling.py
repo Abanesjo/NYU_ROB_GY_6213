@@ -53,9 +53,13 @@ def run_my_model_on_trial(filename, show_plot = True, plot_color = 'ko'):
     motion_model = motion_models.MyMotionModel([0,0,0], 0)
     x_list, y_list, theta_list = motion_model.traj_propagation(time_list, encoder_count_list, steering_angle_list)
 
-    plt.plot(x_list, y_list,plot_color)
-    plt.title('Motion Model Predicted XY Traj (m)')
-    plt.axis([-0.5, 1.5, -1, 1])
+    plt.plot(x_list, y_list, linewidth=3.0)
+    plt.grid()
+    plt.title('Predicted Trajectory from Motion Model')
+    plt.axis('equal')
+    # plt.axis([-0.5, 2.5, -1.0, 1.0])
+    plt.xlabel('x (m)')
+    plt.ylabel('y (m)')
     if show_plot:
         plt.show()
 
@@ -70,6 +74,7 @@ def plot_many_trial_predictions(directory):
         plot_color = plot_color_list[count]
         run_my_model_on_trial(directory + filename, False, plot_color)
         count += 1
+    plt.grid()
     plt.show()
 
 # Calculate the predicted distance from single trial for a motion model
@@ -218,7 +223,7 @@ files_and_data = [
 # Plot the motion model predictions for a single trial
 if False:
     # filename = './data_straight/robot_data_60_0_28_01_26_13_36_10.pkl'
-    filename = './data_curved/robot_data_50_20_06_02_26_16_16_28.pkl'
+    filename = './data_validation/ccw.pkl'
     run_my_model_on_trial(filename)
 
 # Plot the motion model predictions for each trial in a folder
