@@ -5,9 +5,9 @@
 #define SendDeltaTimeInMs 100      // Number ms between messages sent to laptop
 #define ReceiveDeltaTimeInMs 10    // Number ms between checking for control signals sent from laptop
 #define NoSignalDeltaTimeInMs 2000 // Number ms between message receives from laptop before stopping robot
-char ssid[] = "TP-Link_7BD6";      // REPLACE with your team's router ssid
-char pass[] = "15124654";          // REPLACE with your team's router password
-char remoteIP[] = "192.168.0.192"; // REPLACE with your laptop's IP address on your team's router
+char ssid[] = "Tenda_7F7940";      // REPLACE with your team's router ssid
+char pass[] = "42161097";          // REPLACE with your team's router password
+char remoteIP[] = "192.168.0.199"; // REPLACE with your laptop's IP address on your team's router
 unsigned int localPort = 4010;     // local port to listen on - no need to change
 unsigned int remotePort = 4010;    // local port to listen on - no need to change
 int status = WL_IDLE_STATUS;
@@ -25,10 +25,10 @@ String current_lidar_scan_data;
 int current_num_lidar_rays;
 
 // Motor Control setup
-#define RightSpeedPin 9            // Right PWM pin connect MODEL-X ENA
+#define RightSpeedPin 6            // Right PWM pin connect MODEL-X ENA
 #define RightMotorDirPin1 12       // Right Motor direction pin 1 to MODEL-X IN1 
 #define RightMotorDirPin2 11       // Right Motor direction pin 2 to MODEL-X IN2
-#define LeftSpeedPin 6             // Left PWM pin connect MODEL-X ENB
+#define LeftSpeedPin 9             // Left PWM pin connect MODEL-X ENB
 #define LeftMotorDirPin1 7         // Left Motor direction pin 1 to MODEL-X IN3 
 #define LeftMotorDirPin2 8         // Left Motor direction pin 1 to MODEL-X IN4 
 
@@ -40,7 +40,7 @@ Servo myServo;
 // Encoder setup
 #define EncoderOutputA 4          // Encoder output pin A
 #define EncoderOutputB 5          // Encoder output pin B
-#define steering_angle_center 75  // REPLACE with team center angle for servor steering
+#define steering_angle_center 107  // REPLACE with team center angle for servor steering
 int a_state;
 int encoder_a_last_state; 
 int encoder_count;
@@ -155,14 +155,29 @@ void stop()
   digitalWrite(LeftMotorDirPin2,LOW);
 }
 
+static inline uint8_t fastCmdFromSlow(uint8_t slowCmd) {
+  const float c0 = -23.40404818f;
+  const float c1 =  1.40485061f;
+  const float c2 = -0.0155046676f;
+  const float c3 =  0.0000799770772f;
+
+  float x = (float)slowCmd;
+  float y = ((c3*x + c2)*x + c1)*x + c0; // Horner form
+
+  int fastCmd = (int)(y + (y >= 0 ? 0.5f : -0.5f));
+  fastCmd = constrain(fastCmd, 0, 255);
+  return (uint8_t)fastCmd;
+}
+
+
 // Drive robot forward a desired speed
 void forward(int speed)
 {
-  digitalWrite(RightMotorDirPin1, HIGH);
-  digitalWrite(RightMotorDirPin2,LOW);
+  digitalWrite(RightMotorDirPin1, LOW);
+  digitalWrite(RightMotorDirPin2,HIGH);
   digitalWrite(LeftMotorDirPin1,HIGH);
   digitalWrite(LeftMotorDirPin2,LOW);
-  analogWrite(LeftSpeedPin, speed * 0.75);
+  analogWrite(LeftSpeedPin, speed);
   analogWrite(RightSpeedPin, speed);
 }
 
@@ -320,4 +335,3 @@ void printWifiStatus() {
   Serial.print(rssi);
   Serial.println(" dBm");
 }
-
