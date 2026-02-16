@@ -106,6 +106,7 @@ def plot_many_trial_predictions(directory):
         plot_color = plot_color_list[count]
         run_my_model_on_trial(directory + filename, False, plot_color)
         count += 1
+    plt.axis([-2.0, 2.0, -2.0, 2.0])
     plt.show()
 
 # Calculate the predicted distance from single trial for a motion model
@@ -286,8 +287,8 @@ if False:
     run_my_model_on_trial(filename)
 
 # Plot the motion model predictions for each trial in a folder
-if False:
-    directory = ('./data_straight/')
+if True:
+    directory = ('./data_validation/')
     plot_many_trial_predictions(directory)
 
 # A list of files to open, process, and plot - for comparing predicted with actual distances
