@@ -2,48 +2,77 @@
 import math
 import random
 
-# Motion Model constants
-
-
-# A function for obtaining variance in distance travelled as a function of distance travelled
-def variance_distance_travelled_s(distance):
-    # Add student code here
-    var_s = 1
-
-    return var_s
-
-# Function to calculate distance from encoder counts
-def distance_travelled_s(encoder_counts):
-    # Add student code here
-    s = 0
-
-    return s
-
-# A function for obtaining variance in distance travelled as a function of distance travelled
-def variance_rotational_velocity_w(distance):
-    # Add student code here
-    var_w = 1
-
-    return var_w
-
-def rotational_velocity_w(steering_angle_command):
-    # Add student code here
-    w = 0
-    
-    return w
-
 # This class is an example structure for implementing your motion model.
 class MyMotionModel:
 
     # Constructor, change as you see fit.
-    def __init__(self, initial_state, last_encoder_count):
+    def __init__(self, initial_state = [0, 0, 0], last_encoder_count = 0):
+        #State Structure: 
+        #state[0] = x
+        #state[1] = y
+        #state[2] = theta (heading)
         self.state = initial_state
         self.last_encoder_count = last_encoder_count
 
+        #constants
+        self.ticks_per_meter = 3481.84
+        self.meters_per_tick = 1 / self.ticks_per_meter
+        self.distance_variance = 6.23263e-05
+        
+        self.drivetrain_length = 0.140
+
+    def get_distance_travelled(self, encoder_counts):
+        s = self.meters_per_tick * encoder_counts
+        return s
+
+    def get_variance_distance_travelled(self, encoder_counts):
+        return self.distance_variance    
+
+    def get_rotational_velocity(self, v, steering_angle):
+        d_theta = (1 / self.drivetrain_length) * v * math.tan(steering_angle)
+        return d_theta
+        
+    def get_variance_rotational_velocity(self):
+        pass
+
     # This is the key step of your motion model, which implements x_t = f(x_{t-1}, u_t)
+
+    #Provided information: 
+    #state: (x, y, theta)
+    #encoder count
+    #steering angle command
+    #delta_t
+
     def step_update(self, encoder_counts, steering_angle_command, delta_t):
         # Add student code here
-        
+        old_state = self.state.copy()
+        delta_encoder = encoder_counts - self.last_encoder_count
+        delta_s = self.get_distance_travelled(delta_encoder)
+        omega_s = self.get_variance_distance_travelled(delta_encoder)
+
+        v = delta_s / delta_t
+        # sigma_v = omega_s * (1/delta_s)**2
+
+        steering_angle = math.radians(steering_angle_command)
+
+        d_theta = self.get_rotational_velocity(v, steering_angle)
+
+        #theta
+        theta = old_state[2] + 0.5 * d_theta * delta_t
+
+        new_state = old_state
+
+        #x
+        new_state[0] += delta_s * math.cos(theta)
+        #y
+        new_state[1] += delta_s * math.sin(theta)
+        #theta
+        new_state[2] = theta
+
+        self.state = new_state
+
+        self.last_encoder_count = encoder_counts
+
         return self.state
     
     # This is a great tool to take in data from a trial and iterate over the data to create 
