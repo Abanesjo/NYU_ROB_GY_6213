@@ -20,6 +20,10 @@ class MyMotionModel:
         self.distance_variance = 6.23263e-05
         
         self.drivetrain_length = 0.140
+        #theoretical
+        #self.drivetrain_steer_scaling = ((30 + 45)/2) / 20
+        #actual
+        self.drivetrain_steer_scaling = (27) / 20
 
     def get_distance_travelled(self, encoder_counts):
         s = self.meters_per_tick * encoder_counts
@@ -29,7 +33,7 @@ class MyMotionModel:
         return self.distance_variance    
 
     def get_rotational_velocity(self, v, steering_angle):
-        d_theta = (1 / self.drivetrain_length) * v * math.tan(steering_angle)
+        d_theta = (1 / self.drivetrain_length) * v * math.tan(steering_angle * self.drivetrain_steer_scaling)
         return d_theta
         
     def get_variance_rotational_velocity(self):
