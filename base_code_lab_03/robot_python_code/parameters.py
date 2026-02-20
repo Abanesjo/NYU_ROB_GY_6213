@@ -3,19 +3,28 @@ import math
 import numpy as np
 
 # UDP parameters
-localIP = "192.168.0.199" # Put your laptop computer's IP here 199
-arduinoIP = "192.168.0.198" # Put your arduino's IP here 200
+localIP = "192.168.0.200" # Put your laptop computer's IP here 199
+arduinoIP = "192.168.0.199" # Put your arduino's IP here 200
 localPort = 4010
 arduinoPort = 4010
 bufferSize = 1024
 
 # Camera parameters
-camera_id = 0
-marker_length = 0.071
-camera_matrix = np.array([[1.41089024e+03, 0.00000000e+00 ,5.34757040e+02],
- [0.00000000e+00 ,1.40977771e+03, 4.63300611e+02],
- [0.00000000e+00 ,0.00000000e+00 ,1.00000000e+00]], dtype=np.float32)
-dist_coeffs = np.array([-0.32511173, -0.09273864 ,-0.00295959 , 0.00111094 , 0.2446519 ], dtype=np.float32)
+video_device="/dev/video4"
+camera_id = 4
+marker_length = 0.081756
+camera_matrix = np.array(
+    [
+        [1.03300891e03, 0.00000000e00, 6.04854445e02],
+        [0.00000000e00, 1.03249117e03, 3.48291072e02],
+        [0.00000000e00, 0.00000000e00, 1.00000000e00],
+    ],
+    dtype=np.float32,
+)
+dist_coeffs = np.array(
+    [-3.51375985e-01, 2.19285665e-02, 1.32358605e-04, -3.95840024e-05, 8.39202722e-02],
+    dtype=np.float32,
+)
 
 
 # Robot parameters
