@@ -48,6 +48,8 @@ class CameraEstimatorNode(Node):
         odom.header.stamp = self.get_clock().now().to_msg()
         odom.header.frame_id = "camera_frame"
         odom.child_frame_id = child_frame
+
+        #Odometry 
         odom.pose.pose.position.x = float(tvec[0])
         odom.pose.pose.position.y = float(tvec[1])
         odom.pose.pose.position.z = float(tvec[2])
@@ -82,9 +84,9 @@ class CameraEstimatorNode(Node):
 
             self.publish_image(vis)
 
-            cv2.imshow("aruco test", vis)
-            if cv2.waitKey(1) & 0xFF == 27:
-                break
+            # cv2.imshow("aruco test", vis)
+            # if cv2.waitKey(1) & 0xFF == 27:
+            #     break
 
             rclpy.spin_once(self, timeout_sec=0.0)
 

@@ -32,7 +32,7 @@ def convert(frame: np.ndarray) -> bytes:
     
 # Create the connection with a real camera.
 def connect_with_camera():
-    video_capture = cv2.VideoCapture(1)
+    video_capture = cv2.VideoCapture(parameters.camera_id)
     return video_capture
     
 def update_video(video_image):
@@ -267,5 +267,6 @@ def main():
     ui.timer(0.1, control_loop)
 
 # Run the gui
-ui.run(native=True)
+# ui.run(native=True)
+ui.run(host="127.0.0.1", port=8080)
 

@@ -17,49 +17,62 @@ class MyMotionModel:
         #constants
         self.ticks_per_meter = 3481.84
         self.meters_per_tick = 1 / self.ticks_per_meter
-        self.distance_variance = 6.23263e-05
+        self.distance_variance = 2.535e-05
         
         self.drivetrain_length = 0.140
-        #theoretical
-        #self.drivetrain_steer_scaling = ((30 + 45)/2) / 20
-        #actual
-        self.drivetrain_steer_scaling = (27) / 20
 
-    def get_distance_travelled(self, encoder_counts):
-        s = self.meters_per_tick * encoder_counts
+        self.steering_gain = math.radians(-0.8343)
+        self.steering_bias = math.radians(-0.8695)
+
+        self.steering_variance = 0.0123878
+
+    def get_distance_travelled(self, delta_encoder):
+        s = self.meters_per_tick * delta_encoder
         return s
 
-    def get_variance_distance_travelled(self, encoder_counts):
-        return self.distance_variance    
+    def get_variance_distance_travelled(self):
+        return self.distance_variance
 
-    def get_rotational_velocity(self, v, steering_angle):
-        d_theta = (1 / self.drivetrain_length) * v * math.tan(steering_angle * self.drivetrain_steer_scaling)
+    def get_linear_velocity(self, delta_encoder, delta_t):
+        delta_s = self.get_distance_travelled(delta_encoder)
+        return delta_s / delta_t
+
+    def get_variance_linear_velocity(self, delta_t):
+        sigma_s = self.get_variance_distance_travelled()
+        sigma_v = ((1 / delta_t)**2) * sigma_s
+        return sigma_v
+    
+    def get_steering_angle(self, steering_command):
+        return self.steering_gain * steering_command + self.steering_bias
+    
+    def get_variance_steering_angle(self):
+        return self.steering_variance
+
+    def get_rotational_velocity(self, delta_encoder, steering_command, delta_t):
+        steering_angle = self.get_steering_angle(steering_command)
+        v = self.get_linear_velocity(delta_encoder, delta_t)
+        d_theta = (1 / self.drivetrain_length) * v * math.tan(steering_angle)
         return d_theta
         
-    def get_variance_rotational_velocity(self):
-        pass
+    def get_variance_rotational_velocity(self, delta_encoder, steering_command, delta_t):
+        v  = self.get_linear_velocity(delta_encoder, delta_t)
+        sigma_v = self.get_variance_linear_velocity(delta_t)
 
-    # This is the key step of your motion model, which implements x_t = f(x_{t-1}, u_t)
+        phi = self.get_steering_angle(steering_command)
+        sigma_phi = self.get_variance_steering_angle()
 
-    #Provided information: 
-    #state: (x, y, theta)
-    #encoder count
-    #steering angle command
-    #delta_t
+        domega_dv = delta_t * (1/self.drivetrain_length)*math.tan(phi)
+        domega_dphi = delta_t * (v/self.drivetrain_length) * (1/math.cos(phi))**2
+        
+        return (domega_dv**2) * sigma_v + (domega_dphi**2) * sigma_phi
 
-    def step_update(self, encoder_counts, steering_angle_command, delta_t):
+    def step_update(self, encoder_counts, steering_command, delta_t):
         # Add student code here
         old_state = self.state.copy()
         delta_encoder = encoder_counts - self.last_encoder_count
         delta_s = self.get_distance_travelled(delta_encoder)
-        omega_s = self.get_variance_distance_travelled(delta_encoder)
 
-        v = delta_s / delta_t
-        # sigma_v = omega_s * (1/delta_s)**2
-
-        steering_angle = math.radians(steering_angle_command)
-
-        d_theta = self.get_rotational_velocity(v, steering_angle)
+        d_theta = self.get_rotational_velocity(delta_encoder, steering_command, delta_t)
 
         #theta
         theta = old_state[2] + 0.5 * d_theta * delta_t
