@@ -8,21 +8,35 @@ from matplotlib.patches import Ellipse
 import parameters
 import data_handling
 
+#Motion Model
+from motion_models import MyMotionModel
+
 # Main class
 class ExtendedKalmanFilter:
+    #Note: We are overriding the input vector. By default, it is encoder count and steering. We are replacing it with linear velocity and steering angle (steering command is not necessarily the same as the actual steering angle)
+
     def __init__(self, x_0, Sigma_0, encoder_counts_0):
         self.state_mean = x_0
         self.state_covariance = Sigma_0
         self.predicted_state_mean = [0,0,0]
         self.predicted_state_covariance = parameters.I3 * 1.0
         self.last_encoder_counts = encoder_counts_0
+        self.motion_model = MyMotionModel(x_0, encoder_counts_0)
 
     # Call the prediction and correction steps
     def update(self, u_t, z_t, delta_t):
+        u_t = np.asarray(u_t)
+        z_t = np.asarray(z_t)
+
+        #Prediction:
+        
+        #Correction
+
         return
 
     # Set the EKF's predicted state mean and covariance matrix
     def prediction_step(self, u_t, delta_t):
+        
         return
 
     # Set the EKF's corrected state mean and covariance matrix
