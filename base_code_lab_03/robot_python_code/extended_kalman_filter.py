@@ -1,6 +1,7 @@
 # External libraries
 import numpy as np
 import math
+import cv2
 import matplotlib.pyplot as plt
 from matplotlib.patches import Ellipse
 
@@ -10,6 +11,38 @@ import data_handling
 
 # Motion Model
 from motion_models import MyMotionModel
+
+
+def rpy_to_R(roll, pitch, yaw):
+    c_roll = math.cos(roll)
+    s_roll = math.sin(roll)
+    c_pitch = math.cos(pitch)
+    s_pitch = math.sin(pitch)
+    c_yaw = math.cos(yaw)
+    s_yaw = math.sin(yaw)
+
+    Rz = np.array(
+        [
+            [c_yaw, -s_yaw, 0.0],
+            [s_yaw, c_yaw, 0.0],
+            [0.0, 0.0, 1.0],
+        ]
+    )
+    Ry = np.array(
+        [
+            [c_pitch, 0.0, s_pitch],
+            [0.0, 1.0, 0.0],
+            [-s_pitch, 0.0, c_pitch],
+        ]
+    )
+    Rx = np.array(
+        [
+            [1.0, 0.0, 0.0],
+            [0.0, c_roll, -s_roll],
+            [0.0, s_roll, c_roll],
+        ]
+    )
+    return Rz @ Ry @ Rx
 
 
 # Main class
@@ -24,6 +57,18 @@ class ExtendedKalmanFilter:
         self.last_encoder_counts = encoder_counts_0
         self.motion_model = MyMotionModel(x_0, encoder_counts_0)
         self.drivetrain_length = self.motion_model.drivetrain_length
+        self.t_odom_cam = np.array(
+            [parameters.tripod_x, parameters.tripod_y, parameters.tripod_z], dtype=float
+        )
+        R_odom_tripod = rpy_to_R(
+            parameters.tripod_roll, parameters.tripod_pitch, parameters.tripod_yaw
+        )
+        R_tripod_cam = rpy_to_R(
+            parameters.camera_roll, parameters.camera_pitch, parameters.camera_yaw
+        )
+        self.R_odom_cam = R_odom_tripod @ R_tripod_cam
+        self.r1 = self.R_odom_cam[0, :]
+        self.r2 = self.R_odom_cam[1, :]
 
     # -------------------------------Prediction--------------------------------------#
 
@@ -110,16 +155,60 @@ class ExtendedKalmanFilter:
     # -------------------------------Correction--------------------------------------#
 
     # The nonlinear measurement function
-    def get_h_function(self, x_t):
-        return x_t
+    def get_h_function(self, z_t):
+        z_x, z_y, z_z, z_alpha, z_beta, z_theta = z_t
+        z_p = np.array([z_x, z_y, z_z], dtype=float)
+
+        x_x = self.t_odom_cam[0] + np.dot(self.r1, z_p)
+        x_y = self.t_odom_cam[1] + np.dot(self.r2, z_p)
+
+        c_zbeta = math.cos(z_beta)
+        s_zbeta = math.sin(z_beta)
+        c_ztheta = math.cos(z_theta)
+        s_ztheta = math.sin(z_theta)
+        m1 = np.array([c_zbeta * c_ztheta, c_zbeta * s_ztheta, -s_zbeta])
+
+        gamma_1 = np.dot(self.r1, m1)
+        gamma_2 = np.dot(self.r2, m1)
+        x_theta = math.atan2(gamma_2, gamma_1)
+
+        return np.array([x_x, x_y, x_theta])
 
     # This function returns the Q_t matrix which contains measurement covariance terms.
     def get_Q(self):
-        return parameters.I3
+        return parameters.Q6
 
     # This function returns a matrix with the partial derivatives dh_t/dx_t
-    def get_H(self):
-        return parameters.I3
+    def get_H(self, z_t):
+        _, _, _, _, z_beta, z_theta = z_t
+        c_zbeta = math.cos(z_beta)
+        s_zbeta = math.sin(z_beta)
+        c_ztheta = math.cos(z_theta)
+        s_ztheta = math.sin(z_theta)
+
+        m1 = np.array([c_zbeta * c_ztheta, c_zbeta * s_ztheta, -s_zbeta])
+        m1_zbeta = np.array([-s_zbeta * c_ztheta, -s_zbeta * s_ztheta, -c_zbeta])
+        m1_ztheta = np.array([-c_zbeta * s_ztheta, c_zbeta * c_ztheta, 0.0])
+
+        gamma_1 = np.dot(self.r1, m1)
+        gamma_2 = np.dot(self.r2, m1)
+        gamma_1_zbeta = np.dot(self.r1, m1_zbeta)
+        gamma_2_zbeta = np.dot(self.r2, m1_zbeta)
+        gamma_1_ztheta = np.dot(self.r1, m1_ztheta)
+        gamma_2_ztheta = np.dot(self.r2, m1_ztheta)
+
+        denom = gamma_1 * gamma_1 + gamma_2 * gamma_2
+        dtheta_dzbeta = (gamma_1 * gamma_2_zbeta - gamma_2 * gamma_1_zbeta) / denom
+        dtheta_dztheta = (gamma_1 * gamma_2_ztheta - gamma_2 * gamma_1_ztheta) / denom
+
+        H = np.array(
+            [
+                [self.r1[0], self.r1[1], self.r1[2], 0.0, 0.0, 0.0],
+                [self.r2[0], self.r2[1], self.r2[2], 0.0, 0.0, 0.0],
+                [0.0, 0.0, 0.0, 0.0, dtheta_dzbeta, dtheta_dztheta],
+            ]
+        )
+        return H
 
     # Set the EKF's corrected state mean and covariance matrix
     def correction_step(self, z_t):
@@ -184,6 +273,22 @@ class KalmanFilterPlot:
         plt.pause(0.1)
 
 
+def rvec_to_rpy(rvec):
+    rvec = np.array(rvec, dtype=float).reshape(3, 1)
+    R, _ = cv2.Rodrigues(rvec)
+    sy = math.sqrt(R[0, 0] * R[0, 0] + R[1, 0] * R[1, 0])
+    singular = sy < 1e-6
+    if not singular:
+        roll = math.atan2(R[2, 1], R[2, 2])
+        pitch = math.atan2(-R[2, 0], sy)
+        yaw = math.atan2(R[1, 0], R[0, 0])
+    else:
+        roll = math.atan2(-R[1, 2], R[1, 1])
+        pitch = math.atan2(-R[2, 0], sy)
+        yaw = 0.0
+    return roll, pitch, yaw
+
+
 # Code to run your EKF offline with a data file.
 def offline_efk_prediction():
     # Get data to filter
@@ -236,7 +341,8 @@ def offline_efk():
     ekf_data = data_handling.get_file_data_for_kf(filename)
 
     # Instantiate PF with no initial guess
-    x_0 = [ekf_data[0][3][0] + 0.5, ekf_data[0][3][1], ekf_data[0][3][5]]
+    roll_0, pitch_0, yaw_0 = rvec_to_rpy(ekf_data[0][3][3:6])
+    x_0 = [ekf_data[0][3][0] + 0.5, ekf_data[0][3][1], yaw_0]
     Sigma_0 = parameters.I3
     encoder_counts_0 = ekf_data[0][2].encoder_counts
     extended_kalman_filter = ExtendedKalmanFilter(x_0, Sigma_0, encoder_counts_0)
@@ -258,7 +364,8 @@ def offline_efk():
         phi = motion_model.get_steering_angle(row[2].steering)
 
         u_t = np.array([v, phi])
-        z_t = np.array(row[3])
+        roll, pitch, yaw = rvec_to_rpy(row[3][3:6])
+        z_t = np.array([row[3][0], row[3][1], row[3][2], roll, pitch, yaw])
 
         last_encoder_count = row[2].encoder_counts
 
