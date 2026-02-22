@@ -22,27 +22,80 @@ class ExtendedKalmanFilter:
         self.predicted_state_covariance = parameters.I3 * 1.0
         self.last_encoder_counts = encoder_counts_0
         self.motion_model = MyMotionModel(x_0, encoder_counts_0)
+        self.drivetrain_length = self.motion_model.drivetrain_length
 
     #-------------------------------Prediction--------------------------------------#
 
     # The nonlinear transition equation that provides new states from past states
     def g_function(self, x_tm1, u_t, delta_t):
-        x_t = x_tm1
-        s = 0
-        return x_t, s
+        v = u_t[0]
+        phi = u_t[1]
+        L = self.drivetrain_length
+
+        delta_theta = (v/L) * math.tan(phi)*delta_t
+        theta = x_tm1[2] + 0.5 * delta_theta
+
+        delta_x = v * math.cos(theta)*delta_t
+        delta_y = v * math.sin(theta)*delta_t
+
+        x_t = np.array(x_tm1) + np.array([delta_x, delta_y, delta_theta])
+        return x_t
 
     # This function returns the R_t matrix which contains transition function covariance terms.
-    def get_R(self, s):
-        return parameters.I3
+    def get_R(self, delta_t = 0.1):
+        sigma_v = self.motion_model.get_variance_linear_velocity(delta_t)
+        sigma_phi = self.motion_model.get_variance_steering_angle()
 
-    # This function returns the Q_t matrix which contains measurement covariance terms.
-    def get_Q(self):
-        return parameters.I3
+        R = np.diag([sigma_v, sigma_phi])
+
+        return R
+    
+    # This function returns a matrix with the partial derivatives dg/dx
+    # g outputs x_t, y_t, theta_t, and we take derivatives wrt inputs x_tm1, y_tm1, theta_tm1
+    def get_G_x(self, x_tm1, u_t, delta_t):
+        L = self.drivetrain_length 
+        v = u_t[0]
+        phi = u_t[1]
+        theta = x_tm1[2] + 0.5 * (v/L)*math.tan(phi) * delta_t
+
+        G_x = np.array([
+            [1, 0, -1*delta_t*v*math.sin(theta)],
+            [0, 1, delta_t*v*math.cos(theta)],
+            [0, 0, 1]
+        ])
+
+        return G_x
+
+    # This function returns a matrix with the partial derivatives dg/du
+    def get_G_u(self, x_tm1, u_t, delta_t):
+        L = self.drivetrain_length                
+        v = u_t[0]
+        phi = u_t[1]
+        theta = x_tm1[2] + 0.5 * (v/L)*math.tan(phi) * delta_t
+
+        G_u = np.array([
+            [delta_t * math.cos(theta), 0],
+            [delta_t * math.sin(theta), 0],
+            [(delta_t/L)*math.tan(phi), delta_t * (v/L) * (1/math.cos(phi))**2]
+        ])
+
+        return G_u
+
     
         # Set the EKF's predicted state mean and covariance matrix
     def prediction_step(self, u_t, delta_t):
-        
-        return
+        x_tm1 = self.state_mean
+        sigma_tm1 = self.state_covariance
+        G_x = self.get_G_x(x_tm1, u_t, delta_t)
+        G_u = self.get_G_u(x_tm1, u_t, delta_t)
+        R = self.get_R(delta_t)
+
+        x_t = self.g_function(x_tm1, u_t, delta_t)
+        sigma_t = G_x @ sigma_tm1 @ G_x.T + G_u @ R @ G_u.T
+
+        self.state_mean = x_t
+        self.state_covariance = sigma_t
+        return x_t, sigma_t
     
     #-------------------------------Correction--------------------------------------#
     
@@ -50,13 +103,8 @@ class ExtendedKalmanFilter:
     def get_h_function(self, x_t):
         return x_t
     
-    # This function returns a matrix with the partial derivatives dg/dx
-    # g outputs x_t, y_t, theta_t, and we take derivatives wrt inputs x_tm1, y_tm1, theta_tm1
-    def get_G_x(self, x_tm1, s):       
-        return parameters.I3
-
-    # This function returns a matrix with the partial derivatives dg/du
-    def get_G_u(self, x_tm1, delta_t):                
+     # This function returns the Q_t matrix which contains measurement covariance terms.
+    def get_Q(self):
         return parameters.I3
 
     # This function returns a matrix with the partial derivatives dh_t/dx_t
