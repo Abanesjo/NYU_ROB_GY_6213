@@ -249,74 +249,74 @@ def sample_model(num_samples):
     plt.show()
 
 
-######### MAIN ########
-
-# Some sample data to test with
-files_and_data = [
-    ['robot_data_60_0_28_01_26_13_41_44.pkl', 67/100], # filename, measured distance in meters
-    ['robot_data_60_0_28_01_26_13_43_41.pkl', 68/100],
-    ['robot_data_60_0_28_01_26_13_37_15.pkl', 113/100],
-    ['robot_data_60_0_28_01_26_13_35_18.pkl', 107/100],
-    ['robot_data_60_0_28_01_26_13_41_10.pkl', 65/100],
-    ['robot_data_60_0_28_01_26_13_42_55.pkl', 70/100],
-    ['robot_data_60_0_28_01_26_13_39_36.pkl', 138/100],
-    ['robot_data_60_0_28_01_26_13_42_19.pkl', 69/100],
-    ['robot_data_60_0_28_01_26_13_36_10.pkl', 109/100],
-    ['robot_data_60_0_28_01_26_13_33_20.pkl', 100/100],
-    ['robot_data_60_0_28_01_26_13_34_28.pkl', 103/100],
-    ]
-
-files_and_data_curve = [
-    ['robot_data_60_10_28_01_26_13_44_28.pkl', 61/100, 31/100],
-    ['robot_data_60_10_28_01_26_13_45_14.pkl', 61/100, 32/100],
-    ['robot_data_60_10_28_01_26_13_45_56.pkl', 61/100, 30/100],
-    ['robot_data_60_10_28_01_26_13_46_26.pkl', 61/100, 31/100],	
-    ['robot_data_60_10_28_01_26_13_47_10.pkl', 62/100, 29/100],
-    ['robot_data_60_10_28_01_26_13_48_25.pkl', 70/100, 106/100],
-    ['robot_data_60_10_28_01_26_13_49_08.pkl', 73/100, 106/100],
-    ['robot_data_60_10_28_01_26_13_50_55.pkl', 73/100, 71/100],
-    ['robot_data_60_10_28_01_26_13_51_34.pkl', 76/100, 69/100],
-    ['robot_data_60_10_28_01_26_13_52_07.pkl', 78/100, 71/100],
-    ['robot_data_60_10_28_01_26_13_52_35.pkl', 76/100, 70/100],
-    ['robot_data_60_10_28_01_26_13_53_08.pkl', 76/100, 71/100],
-]
-
 # Plot the motion model predictions for a single trial
-if False:
-    filename = './data_straight/robot_data_60_0_28_01_26_13_36_10.pkl'
-    run_my_model_on_trial(filename)
+if __name__ == "__main__":
+    ######### MAIN ########
 
-# Plot the motion model predictions for each trial in a folder
-if True:
-    directory = ('./data_validation/')
-    plot_many_trial_predictions(directory)
+    # Some sample data to test with
+    files_and_data = [
+        ['robot_data_60_0_28_01_26_13_41_44.pkl', 67/100], # filename, measured distance in meters
+        ['robot_data_60_0_28_01_26_13_43_41.pkl', 68/100],
+        ['robot_data_60_0_28_01_26_13_37_15.pkl', 113/100],
+        ['robot_data_60_0_28_01_26_13_35_18.pkl', 107/100],
+        ['robot_data_60_0_28_01_26_13_41_10.pkl', 65/100],
+        ['robot_data_60_0_28_01_26_13_42_55.pkl', 70/100],
+        ['robot_data_60_0_28_01_26_13_39_36.pkl', 138/100],
+        ['robot_data_60_0_28_01_26_13_42_19.pkl', 69/100],
+        ['robot_data_60_0_28_01_26_13_36_10.pkl', 109/100],
+        ['robot_data_60_0_28_01_26_13_33_20.pkl', 100/100],
+        ['robot_data_60_0_28_01_26_13_34_28.pkl', 103/100],
+        ]
 
-# A list of files to open, process, and plot - for comparing predicted with actual distances
-if False:
-    directory = ('./data_straight/')    
-    process_files_and_plot(files_and_data, directory)
+    files_and_data_curve = [
+        ['robot_data_60_10_28_01_26_13_44_28.pkl', 61/100, 31/100],
+        ['robot_data_60_10_28_01_26_13_45_14.pkl', 61/100, 32/100],
+        ['robot_data_60_10_28_01_26_13_45_56.pkl', 61/100, 30/100],
+        ['robot_data_60_10_28_01_26_13_46_26.pkl', 61/100, 31/100],	
+        ['robot_data_60_10_28_01_26_13_47_10.pkl', 62/100, 29/100],
+        ['robot_data_60_10_28_01_26_13_48_25.pkl', 70/100, 106/100],
+        ['robot_data_60_10_28_01_26_13_49_08.pkl', 73/100, 106/100],
+        ['robot_data_60_10_28_01_26_13_50_55.pkl', 73/100, 71/100],
+        ['robot_data_60_10_28_01_26_13_51_34.pkl', 76/100, 69/100],
+        ['robot_data_60_10_28_01_26_13_52_07.pkl', 78/100, 71/100],
+        ['robot_data_60_10_28_01_26_13_52_35.pkl', 76/100, 70/100],
+        ['robot_data_60_10_28_01_26_13_53_08.pkl', 76/100, 71/100],
+    ]
+    if False:
+        filename = './data_straight/robot_data_60_0_28_01_26_13_36_10.pkl'
+        run_my_model_on_trial(filename)
 
-if False:
-    directory = ('./data_curve/')    
-    process_files_and_plot_curve(files_and_data_curve, directory)
+    # Plot the motion model predictions for each trial in a folder
+    if True:
+        directory = ('./data_validation/')
+        plot_many_trial_predictions(directory)
 
-# Try to sample with the motion model
-if False:
-    sample_model(200)
+    # A list of files to open, process, and plot - for comparing predicted with actual distances
+    if False:
+        directory = ('./data_straight/')    
+        process_files_and_plot(files_and_data, directory)
 
-# Try to load some camera data from a single trial
-if False:
-    filename = './data/robot_data_68_0_06_02_26_17_12_19.pkl'
-    time_list, encoder_count_list, velocity_list, steering_angle_list, x_camera_list, y_camera_list, z_camera_list, yaw_camera_list= get_file_data(filename)
+    if False:
+        directory = ('./data_curve/')    
+        process_files_and_plot_curve(files_and_data_curve, directory)
 
-    wheel_radius = 0.034 #cm
-    encoder_counts_per_revolution = 152
-    encoder_counts_to_distance = -2 * math.pi * wheel_radius/ encoder_counts_per_revolution
+    # Try to sample with the motion model
+    if False:
+        sample_model(200)
 
-    plt.plot(time_list, ((np.array(encoder_count_list))-encoder_count_list[0]) * encoder_counts_to_distance + x_list[0], 'k') 
-    #plt.plot(time_list, steering_angle_list, 'r') 
-    plt.plot(time_list, x_list, 'g') 
-    plt.plot(time_list, y_list, 'b') 
-    plt.plot(time_list, z_list, 'c') 
-    plt.legend(['Encoder s','x','y','z'])
-    plt.show()   
+    # Try to load some camera data from a single trial
+    if False:
+        filename = './data/robot_data_68_0_06_02_26_17_12_19.pkl'
+        time_list, encoder_count_list, velocity_list, steering_angle_list, x_camera_list, y_camera_list, z_camera_list, yaw_camera_list= get_file_data(filename)
+
+        wheel_radius = 0.034 #cm
+        encoder_counts_per_revolution = 152
+        encoder_counts_to_distance = -2 * math.pi * wheel_radius/ encoder_counts_per_revolution
+
+        plt.plot(time_list, ((np.array(encoder_count_list))-encoder_count_list[0]) * encoder_counts_to_distance + x_list[0], 'k') 
+        #plt.plot(time_list, steering_angle_list, 'r') 
+        plt.plot(time_list, x_list, 'g') 
+        plt.plot(time_list, y_list, 'b') 
+        plt.plot(time_list, z_list, 'c') 
+        plt.legend(['Encoder s','x','y','z'])
+        plt.show()   

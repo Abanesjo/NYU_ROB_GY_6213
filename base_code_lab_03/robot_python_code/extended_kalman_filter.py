@@ -163,7 +163,7 @@ class KalmanFilterPlot:
 def offline_efk():
 
     # Get data to filter
-    filename = './data/robot_data_68_0_06_02_26_17_12_19.pkl'
+    filename = './data_validation/cw.pkl'
     ekf_data = data_handling.get_file_data_for_kf(filename)
 
     # Instantiate PF with no initial guess
@@ -200,5 +200,5 @@ def offline_efk():
 
 
 ####### MAIN #######
-if False:
+if __name__=="__main__":
     offline_efk()
