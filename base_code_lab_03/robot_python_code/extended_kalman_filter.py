@@ -185,7 +185,7 @@ class KalmanFilterPlot:
 
 
 # Code to run your EKF offline with a data file.
-def offline_efk():
+def offline_efk_prediction():
     # Get data to filter
     # filename = "./data_validation/cw.pkl"
     filename = "./data_validation/straight.pkl"
@@ -229,6 +229,47 @@ def offline_efk():
         )
 
 
+# Code to run your EKF offline with a data file (prediction + correction).
+def offline_efk():
+    # Get data to filter
+    filename = "./data/robot_data_68_0_06_02_26_17_12_19.pkl"
+    ekf_data = data_handling.get_file_data_for_kf(filename)
+
+    # Instantiate PF with no initial guess
+    x_0 = [ekf_data[0][3][0] + 0.5, ekf_data[0][3][1], ekf_data[0][3][5]]
+    Sigma_0 = parameters.I3
+    encoder_counts_0 = ekf_data[0][2].encoder_counts
+    extended_kalman_filter = ExtendedKalmanFilter(x_0, Sigma_0, encoder_counts_0)
+
+    motion_model = MyMotionModel(x_0, encoder_counts_0)
+
+    # Create plotting tool for ekf
+    kalman_filter_plot = KalmanFilterPlot()
+
+    last_encoder_count = encoder_counts_0
+    # Loop over sim data
+    for t in range(1, len(ekf_data)):
+        row = ekf_data[t]
+        delta_t = ekf_data[t][0] - ekf_data[t - 1][0]  # time step size
+
+        v = motion_model.get_linear_velocity(
+            row[2].encoder_counts - last_encoder_count, delta_t
+        )
+        phi = motion_model.get_steering_angle(row[2].steering)
+
+        u_t = np.array([v, phi])
+        z_t = np.array(row[3])
+
+        last_encoder_count = row[2].encoder_counts
+
+        # Run the EKF for a time step
+        extended_kalman_filter.update(u_t, z_t, delta_t)
+        kalman_filter_plot.update(
+            extended_kalman_filter.state_mean,
+            extended_kalman_filter.state_covariance[0:2, 0:2],
+        )
+
+
 ####### MAIN #######
 if __name__ == "__main__":
-    offline_efk()
+    offline_efk_prediction()
