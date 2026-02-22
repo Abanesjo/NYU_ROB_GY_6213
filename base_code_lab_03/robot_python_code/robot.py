@@ -94,12 +94,12 @@ class Robot:
         self.camera_sensor_signal = self.camera_sensor.get_signal(
             self.camera_sensor_signal
         )
-        print(
-            "Camera signal: ",
-            int(100 * self.camera_sensor_signal[0]),
-            int(100 * self.camera_sensor_signal[1]),
-            int(100 * self.camera_sensor_signal[2]),
-        )
+        # print(
+        #     "Camera signal: ",
+        #     int(100 * self.camera_sensor_signal[0]),
+        #     int(100 * self.camera_sensor_signal[1]),
+        #     int(100 * self.camera_sensor_signal[2]),
+        # )
 
         # Receive msg
         if self.msg_sender != None:

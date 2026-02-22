@@ -27,8 +27,10 @@ import parameters
 CONTROL_PERIOD_S = 0.1
 STEER_AXIS = 2
 SPEED_AXIS = 1
+SPEED_AXIS_SIGN = -1.0
 STEER_SCALE = 20
 MAX_SPEED = 100
+AXIS_DEADZONE = 0.05
 
 logging_active = False
 stream_video = True
@@ -60,10 +62,7 @@ def disconnect_controller(joystick):
 
 def get_controller_commands(joystick):
     pygame.event.pump()
-    speed_axis = -joystick.get_axis(SPEED_AXIS)
-    if speed_axis < 0:
-        speed_axis = 0.0
-    speed_axis = clamp(speed_axis, 0.0, 1.0)
+    speed_axis = clamp(SPEED_AXIS_SIGN * joystick.get_axis(SPEED_AXIS), 0.0, 1.0)
     cmd_speed = int(round(speed_axis * MAX_SPEED))
 
     steer_axis = clamp(joystick.get_axis(STEER_AXIS), -1.0, 1.0)
@@ -115,6 +114,8 @@ def main():
     robot = Robot()
     joystick = None
     controller_connected = False
+    pressed_buttons = set()
+    last_axis_values = None
 
     video_capture = None
     use_robot_camera = False
@@ -208,7 +209,37 @@ def main():
         set_recording(not logging_active)
 
     def update_commands():
-        nonlocal joystick, controller_connected
+        nonlocal joystick, controller_connected, pressed_buttons, last_axis_values
+
+        if controller_connected and joystick is not None:
+            pygame.event.pump()
+            current_pressed = {
+                index
+                for index in range(joystick.get_numbuttons())
+                if joystick.get_button(index)
+            }
+            if current_pressed and current_pressed != pressed_buttons:
+                print(
+                    f"Controller buttons pressed: {sorted(current_pressed)}",
+                    flush=True,
+                )
+            pressed_buttons = current_pressed
+
+            axis_values = [
+                round(joystick.get_axis(index), 3)
+                for index in range(joystick.get_numaxes())
+            ]
+            previous_values = (
+                axis_values if last_axis_values is None else last_axis_values
+            )
+            axis_change = any(
+                abs(axis_values[index] - previous_values[index]) >= AXIS_DEADZONE
+                for index in range(len(axis_values))
+            )
+            axis_active = any(abs(value) >= AXIS_DEADZONE for value in axis_values)
+            if axis_active and (last_axis_values is None or axis_change):
+                print(f"Controller axes: {axis_values}", flush=True)
+            last_axis_values = axis_values
 
         if robot.running_trial:
             delta_time = get_time_in_ms() - robot.trial_start_time
@@ -374,7 +405,7 @@ def main():
                     video_image = None
             with ui.card().classes("w-full items-center h-60"):
                 main_plot = ui.pyplot(figsize=(3, 3))
-            with ui.card().classes("items-center h-60"):
+            with ui.card().classes("items-center h-auto min-h-60 overflow-y-auto"):
                 ui.label("Encoder:").style("text-align: center;")
                 encoder_count_label = ui.label("0")
                 record_button = ui.button("Record", on_click=lambda: toggle_recording())
