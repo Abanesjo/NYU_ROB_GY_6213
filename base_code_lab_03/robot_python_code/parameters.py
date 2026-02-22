@@ -46,6 +46,8 @@ covariance_plot_scale = 100
 
 Q6 = np.diag([0.01, 0.01, 0.01, 0.1218, 0.1218, 0.1218])
 
+marker_height = 0.135
+
 #Camera Extrinsics
 #Odom to Tripod Mount: 
 tripod_x = 0.0
