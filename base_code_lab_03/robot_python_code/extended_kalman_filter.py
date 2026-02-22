@@ -23,39 +23,28 @@ class ExtendedKalmanFilter:
         self.last_encoder_counts = encoder_counts_0
         self.motion_model = MyMotionModel(x_0, encoder_counts_0)
 
-    # Call the prediction and correction steps
-    def update(self, u_t, z_t, delta_t):
-        u_t = np.asarray(u_t)
-        z_t = np.asarray(z_t)
-
-        #Prediction:
-        
-        #Correction
-
-        return
-
-    # Set the EKF's predicted state mean and covariance matrix
-    def prediction_step(self, u_t, delta_t):
-        
-        return
-
-    # Set the EKF's corrected state mean and covariance matrix
-    def correction_step(self, z_t):
-        return
-
-    # Function to calculate distance from encoder counts
-    def distance_travelled_s(self, encoder_counts):
-        return 0    
-            
-    # Function to calculate rotational velocity from steering and dist travelled or speed
-    def rotational_velocity_w(self, steering_angle_command):        
-        return 0
+    #-------------------------------Prediction--------------------------------------#
 
     # The nonlinear transition equation that provides new states from past states
     def g_function(self, x_tm1, u_t, delta_t):
         x_t = x_tm1
         s = 0
         return x_t, s
+
+    # This function returns the R_t matrix which contains transition function covariance terms.
+    def get_R(self, s):
+        return parameters.I3
+
+    # This function returns the Q_t matrix which contains measurement covariance terms.
+    def get_Q(self):
+        return parameters.I3
+    
+        # Set the EKF's predicted state mean and covariance matrix
+    def prediction_step(self, u_t, delta_t):
+        
+        return
+    
+    #-------------------------------Correction--------------------------------------#
     
     # The nonlinear measurement function
     def get_h_function(self, x_t):
@@ -73,14 +62,23 @@ class ExtendedKalmanFilter:
     # This function returns a matrix with the partial derivatives dh_t/dx_t
     def get_H(self):
         return parameters.I3
-    
-    # This function returns the R_t matrix which contains transition function covariance terms.
-    def get_R(self, s):
-        return parameters.I3
 
-    # This function returns the Q_t matrix which contains measurement covariance terms.
-    def get_Q(self):
-        return parameters.I3
+    # Set the EKF's corrected state mean and covariance matrix
+    def correction_step(self, z_t):
+        return
+    
+    #-------------------------------Update--------------------------------------#
+    
+    # Call the prediction and correction steps
+    def update(self, u_t, z_t, delta_t):
+        u_t = np.asarray(u_t)
+        z_t = np.asarray(z_t)
+
+        #Prediction:
+        
+        #Correction
+
+        return
 
 class KalmanFilterPlot:
 
