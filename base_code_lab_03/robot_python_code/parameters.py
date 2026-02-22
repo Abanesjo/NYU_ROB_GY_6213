@@ -41,5 +41,5 @@ trial_time = 10000 # milliseconds
 extra_trial_log_time = 2000 # milliseconds
 
 # KF parameters
-I3 = np.array([[1, 0, 0],[0, 1, 0], [0, 0, 1]])
+I3 = np.array([[0.01, 0, 0],[0, 0.01, 0], [0, 0, 0.1218]])
 covariance_plot_scale = 100
