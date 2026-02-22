@@ -41,20 +41,20 @@ trial_time = 10000 # milliseconds
 extra_trial_log_time = 2000 # milliseconds
 
 # KF parameters
-I3 = np.array([[0.5, 0, 0],[0, 0.5, 0], [0, 0, 0.1218]])
+I3 = np.array([[0.01, 0, 0],[0, 0.01, 0], [0, 0, 0.1218]])
 covariance_plot_scale = 100
 
-Q6 = np.diag([0.05, 0.05, 0.05, 0.1218, 0.1218, 0.1218])
+Q6 = np.diag([0.05, 0.05, 0.2, 0.1218, 0.1218, 0.1218])
 
 marker_height = 0.135
 
 #Camera Extrinsics
 #Odom to Tripod Mount: 
-tripod_x = -1.8
-tripod_y = -0.2  
-tripod_z = 1.03
+tripod_x = -0.62
+tripod_y = -0.08  
+tripod_z = 2.25
 tripod_roll = 0.0
-tripod_pitch = 0.5235
+tripod_pitch = 1.35
 tripod_yaw = 0.0
 
 #Tripod Mount to Camera Frame (this just rotates x-y-z orientation to the camera's OpenCV Image coordinates)
