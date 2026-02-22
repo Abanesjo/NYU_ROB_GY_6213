@@ -13,6 +13,7 @@ from time import strftime
 import parameters
 import extended_kalman_filter
 import robot_python_code
+from motion_models import MyMotionModel
 
 # The core robot class
 class Robot:
@@ -29,6 +30,10 @@ class Robot:
         self.robot_sensor_signal = robot_python_code.RobotSensorSignal([0, 0, 0])
         self.camera_sensor_signal = [0,0,0,0,0,0]
         self.extended_kalman_filter = extended_kalman_filter.ExtendedKalmanFilter(x_0 = [0,0,0], Sigma_0 = parameters.I3 * 10e12, encoder_counts_0 = 0)
+
+        
+        self.motion_model = MyMotionModel([0, 0, 0], 0)
+        self.last_encoder_count = self.robot_sensor_signal.encoder_counts
         
     # Create udp senders and receiver instances with the udp communication
     def setup_udp_connection(self, udp_communication):
@@ -43,9 +48,19 @@ class Robot:
         print("Eliminate UDP !!!")
 
     def update_state_estimate(self):
-        u_t = np.array([self.robot_sensor_signal.encoder_counts, self.robot_sensor_signal.steering]) # robot_sensor_signal
-        z_t = np.array([self.camera_sensor_signal[0],self.camera_sensor_signal[1],self.camera_sensor_signal[5]]) # camera_sensor_signal
+        # u_t = np.array([self.robot_sensor_signal.encoder_counts, self.robot_sensor_signal.steering]) # robot_sensor_signal
+        # z_t = np.array([self.camera_sensor_signal[0],self.camera_sensor_signal[1],self.camera_sensor_signal[5]]) # camera_sensor_signal
+        
         delta_t = 0.1
+
+        v = self.motion_model.get_linear_velocity(self.robot_sensor_signal.encoder_counts - self.last_encoder_count, delta_t = delta_t)
+        phi = self.motion_model.get_steering_angle(self.robot_sensor_signal.steering)
+
+        u_t = np.array([v, phi])
+        z_t = np.array(self.camera_sensor_signal)
+
+        self.last_encoder_count = self.robot_sensor_signal.encoder_counts
+
         self.extended_kalman_filter.update(u_t, z_t, delta_t)
 
     # One iteration of the control loop to be called repeatedly

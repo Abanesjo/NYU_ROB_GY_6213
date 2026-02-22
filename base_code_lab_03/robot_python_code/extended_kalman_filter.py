@@ -126,15 +126,27 @@ def offline_efk():
     encoder_counts_0 = ekf_data[0][2].encoder_counts
     extended_kalman_filter = ExtendedKalmanFilter(x_0, Sigma_0, encoder_counts_0)
 
+    motion_model = MyMotionModel(x_0, encoder_counts_0)
+
     # Create plotting tool for ekf
     kalman_filter_plot = KalmanFilterPlot()
 
+    last_encoder_count = encoder_counts_0
     # Loop over sim data
     for t in range(1, len(ekf_data)):
         row = ekf_data[t]
         delta_t = ekf_data[t][0] - ekf_data[t-1][0] # time step size
-        u_t = np.array([row[2].encoder_counts, row[2].steering]) # robot_sensor_signal
-        z_t = np.array([row[3][0],row[3][1],row[3][5]]) # camera_sensor_signal
+
+        # u_t = np.array([row[2].encoder_counts, row[2].steering]) # robot_sensor_signal
+        #z_t = np.array([row[3][0],row[3][1],row[3][5]]) # camera_sensor_signal
+        
+        v = motion_model.get_linear_velocity(row[2].encoder_counts - last_encoder_count, delta_t)
+        phi = motion_model.get_steering_angle(row[2].steering)
+
+        u_t = np.array([v, phi])
+        z_t = np.array(row[3])
+
+        last_encoder_count = row[2].encoder_counts
 
         # Run the EKF for a time step
         extended_kalman_filter.update(u_t, z_t, delta_t)
