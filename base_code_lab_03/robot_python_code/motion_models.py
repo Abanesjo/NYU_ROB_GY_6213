@@ -21,7 +21,7 @@ class MyMotionModel:
         
         self.drivetrain_length = 0.140
 
-        manual_correction = 1.5
+        manual_correction = 1.0
         self.steering_gain = math.radians(-0.8343) * manual_correction
         self.steering_bias = math.radians(-0.8695)
 

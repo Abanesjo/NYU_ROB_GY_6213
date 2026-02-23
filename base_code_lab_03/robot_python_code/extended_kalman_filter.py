@@ -62,6 +62,7 @@ class ExtendedKalmanFilter:
         self.predicted_state_mean = [0, 0, 0]
         self.predicted_state_covariance = parameters.I3 * 1.0
         self.last_encoder_counts = encoder_counts_0
+        self.correct = True
         self.motion_model = MyMotionModel(x_0, encoder_counts_0)
         self.drivetrain_length = self.motion_model.drivetrain_length
         self.T_x = float(parameters.tripod_x)
@@ -296,7 +297,16 @@ class ExtendedKalmanFilter:
         Q = self.get_Q()
         z_hat = self.get_h_function(x_t_pred)
         S = H @ sigma_t_pred @ H.T + Q
-        K = sigma_t_pred @ H.T @ np.linalg.inv(S)
+        try:
+            K = sigma_t_pred @ H.T @ np.linalg.inv(S)
+        except np.linalg.LinAlgError:
+            S = S + np.eye(S.shape[0]) * 1e-9
+            try:
+                K = sigma_t_pred @ H.T @ np.linalg.inv(S)
+            except np.linalg.LinAlgError:
+                self.state_mean = x_t_pred
+                self.state_covariance = sigma_t_pred
+                return self.state_mean, self.state_covariance
 
         self.state_mean = x_t_pred + K @ (z_t - z_hat)
         self.state_covariance = (np.eye(3) - K @ H) @ sigma_t_pred
@@ -314,7 +324,7 @@ class ExtendedKalmanFilter:
         self.prediction_step(u_t, delta_t)
 
         # Correction
-        if z_t is not None:
+        if self.correct and z_t is not None:
             self.correction_step(z_t)
 
         return self.state_mean, self.state_covariance

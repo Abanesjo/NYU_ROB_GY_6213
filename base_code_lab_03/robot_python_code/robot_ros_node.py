@@ -23,6 +23,7 @@ from cv_bridge import CvBridge
 
 import parameters
 import robot_python_code
+from extended_kalman_filter import ExtendedKalmanFilter
 from robot import Robot
 
 
@@ -116,6 +117,7 @@ class RobotRosNode(Node):
         self.static_tf_broadcaster = StaticTransformBroadcaster(self)
         self.camera_odom_pub = self.create_publisher(Odometry, "/odom/camera", 10)
         self.filtered_odom_pub = self.create_publisher(Odometry, "/odom/filtered", 10)
+        self.wheel_odom_pub = self.create_publisher(Odometry, "/odom/wheel", 10)
         self.image_pub = self.create_publisher(Image, "/camera/image", 10)
         self.cv_bridge = CvBridge()
         self.marker_length = float(parameters.marker_length)
@@ -202,6 +204,31 @@ class RobotRosNode(Node):
         self.camera_odom_pub.publish(odom)
         self.publish_marker_tf(tvec, quat)
 
+    def build_pose_covariance(
+        self, state_covariance, z_var: float, roll_var: float, pitch_var: float
+    ) -> np.ndarray:
+        state_cov = np.asarray(state_covariance, dtype=float).reshape(3, 3)
+        state_cov = 0.5 * (state_cov + state_cov.T)
+        try:
+            eigvals, eigvecs = np.linalg.eigh(state_cov)
+            eigvals = np.maximum(eigvals, 1e-9)
+            state_cov = eigvecs @ np.diag(eigvals) @ eigvecs.T
+        except np.linalg.LinAlgError:
+            diag = np.maximum(np.diag(state_cov), 1e-9)
+            state_cov = np.diag(diag)
+
+        cov = np.zeros((6, 6), dtype=float)
+        cov[0:2, 0:2] = state_cov[0:2, 0:2]
+        cov[0, 5] = state_cov[0, 2]
+        cov[1, 5] = state_cov[1, 2]
+        cov[5, 0] = state_cov[2, 0]
+        cov[5, 1] = state_cov[2, 1]
+        cov[5, 5] = state_cov[2, 2]
+        cov[2, 2] = z_var
+        cov[3, 3] = roll_var
+        cov[4, 4] = pitch_var
+        return cov
+
     def publish_filtered_odom(self, state_mean, state_covariance) -> None:
         if state_mean is None or len(state_mean) < 3:
             return
@@ -219,26 +246,44 @@ class RobotRosNode(Node):
         odom.child_frame_id = "base_link"
         odom.pose.pose.position.x = x
         odom.pose.pose.position.y = y
-        odom.pose.pose.position.z = 0.0
+        odom.pose.pose.position.z = float(parameters.marker_height)
         odom.pose.pose.orientation.x = float(qx)
         odom.pose.pose.orientation.y = float(qy)
         odom.pose.pose.orientation.z = float(qz)
         odom.pose.pose.orientation.w = float(qw)
 
-        cov = np.zeros((6, 6), dtype=float)
-        state_cov = np.asarray(state_covariance, dtype=float)
-        cov[0:2, 0:2] = state_cov[0:2, 0:2]
-        cov[0, 5] = state_cov[0, 2]
-        cov[1, 5] = state_cov[1, 2]
-        cov[5, 0] = state_cov[2, 0]
-        cov[5, 1] = state_cov[2, 1]
-        cov[5, 5] = state_cov[2, 2]
-        cov[2, 2] = 0.05
-        cov[3, 3] = 0.01
-        cov[4, 4] = 0.01
+        cov = self.build_pose_covariance(state_covariance, 0.05, 0.01, 0.01)
         odom.pose.covariance = cov.flatten().tolist()
 
         self.filtered_odom_pub.publish(odom)
+
+    def publish_wheel_odom(self, state_mean, state_covariance) -> None:
+        if state_mean is None or len(state_mean) < 3:
+            return
+
+        x = float(state_mean[0])
+        y = float(state_mean[1])
+        yaw = float(state_mean[2])
+        qx, qy, qz, qw = Rotation.from_euler("xyz", [0.0, 0.0, yaw]).as_quat(
+            canonical=False
+        )
+
+        odom = Odometry()
+        odom.header.stamp = self.get_clock().now().to_msg()
+        odom.header.frame_id = "odom"
+        odom.child_frame_id = "base_link"
+        odom.pose.pose.position.x = x
+        odom.pose.pose.position.y = y
+        odom.pose.pose.position.z = float(parameters.marker_height)
+        odom.pose.pose.orientation.x = float(qx)
+        odom.pose.pose.orientation.y = float(qy)
+        odom.pose.pose.orientation.z = float(qz)
+        odom.pose.pose.orientation.w = float(qw)
+
+        cov = self.build_pose_covariance(state_covariance, 0.01, 0.001, 0.001)
+        odom.pose.covariance = cov.flatten().tolist()
+
+        self.wheel_odom_pub.publish(odom)
 
     def publish_image(self, frame: np.ndarray) -> None:
         msg = self.cv_bridge.cv2_to_imgmsg(frame, encoding="bgr8")
@@ -286,8 +331,17 @@ def main() -> None:
     rclpy.init()
     ros_node = RobotRosNode()
     robot, udp = connect_robot()
+    wheel_ekf = ExtendedKalmanFilter(
+        x_0=[0.0, 0.0, 0.0],
+        Sigma_0=parameters.I3,
+        encoder_counts_0=robot.robot_sensor_signal.encoder_counts,
+    )
+    wheel_ekf.correct = False
+    wheel_last_encoder_count = robot.robot_sensor_signal.encoder_counts
+    wheel_initialized = False
 
     logging_active = False
+    last_loop_time = time.perf_counter()
 
     try:
         with KeyPoller() as key_poller:
@@ -318,9 +372,35 @@ def main() -> None:
 
                 robot.control_loop(cmd_speed, cmd_steering, logging_active)
 
+                encoder_counts = robot.robot_sensor_signal.encoder_counts
+                now = time.perf_counter()
+                if not wheel_initialized:
+                    wheel_last_encoder_count = encoder_counts
+                    last_loop_time = now
+                    wheel_initialized = True
+                else:
+                    delta_t = now - last_loop_time
+                    last_loop_time = now
+                    if delta_t <= 0.0:
+                        delta_t = CONTROL_PERIOD_S
+
+                    delta_counts = encoder_counts - wheel_last_encoder_count
+                    wheel_last_encoder_count = encoder_counts
+                    v = wheel_ekf.motion_model.get_linear_velocity(
+                        delta_counts, delta_t
+                    )
+                    phi = wheel_ekf.motion_model.get_steering_angle(
+                        robot.robot_sensor_signal.steering
+                    )
+                    wheel_ekf.update([v, phi], None, delta_t)
+
                 ros_node.publish_filtered_odom(
                     robot.extended_kalman_filter.state_mean,
                     robot.extended_kalman_filter.state_covariance,
+                )
+                ros_node.publish_wheel_odom(
+                    wheel_ekf.state_mean,
+                    wheel_ekf.state_covariance,
                 )
                 frame = getattr(robot.camera_sensor, "last_frame", None)
                 if frame is not None:
